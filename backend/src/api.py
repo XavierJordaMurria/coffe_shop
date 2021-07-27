@@ -3,13 +3,28 @@ from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
-
+from typing import List
 from .database.models import db_drop_and_create_all, setup_db, Drink
 from .auth.auth import AuthError, requires_auth
 
 app = Flask(__name__)
 setup_db(app)
-CORS(app)
+
+api_v1_cors_config = {
+  "origins": ["http://localhost:5000"]
+}
+CORS(app, resources={"/*": api_v1_cors_config})
+
+# CORS Headers
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers',
+                            'Content-Type,Authorization,true')
+    response.headers.add('Access-Control-Allow-Origin',
+                            '*')
+    response.headers.add('Access-Control-Allow-Methods',
+                            'GET,PATCH,POST,DELETE,OPTIONS')
+    return response
 
 '''
 uncomment the following line to initialize the datbase
@@ -28,7 +43,16 @@ db_drop_and_create_all()
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks', methods=['GET'])
+def get_drinks():
+    print("Got here")
+    result = drinks_dao()
+    return jsonify(categories=result)
 
+def drinks_dao():
+    result: List[Drink] = Drink.query.all()
+    drink_short = [i.short() for i in result]
+    return drink_short
 
 '''
 @TODO implement endpoint
